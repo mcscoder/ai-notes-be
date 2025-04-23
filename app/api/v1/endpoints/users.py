@@ -11,11 +11,6 @@ from app.schemas import user as UserSchema, common as CommonSchema
 router = APIRouter()
 
 
-@router.get("/test")
-async def test_endpoint():
-    return {"message": "Test endpoint is working!"}
-
-
 @router.get("/me", response_model=UserSchema.UserRead)
 async def get_user_me(
     current_user: UserModel.User = Depends(get_current_user),

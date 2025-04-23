@@ -1,4 +1,4 @@
-from app.models import BaseModel
+from app.models.base import BaseModel
 from sqlmodel import Field, Relationship
 from typing import TYPE_CHECKING, Optional
 
@@ -9,9 +9,9 @@ if TYPE_CHECKING:
 class NoteBase(BaseModel):
     title: str
     content: str
-    is_pinned: bool = Field(default=False)
-    is_finished: bool = Field(default=False)
-    is_archived: bool = Field(default=False)
+    is_pinned: bool = False
+    is_finished: bool = False
+    is_archived: bool = False
 
 class Note(NoteBase, table=True):
     # Many notes belong to one user

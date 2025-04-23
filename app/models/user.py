@@ -1,4 +1,4 @@
-from app.models import BaseModel
+from app.models.base import BaseModel
 from sqlmodel import Relationship
 from typing import TYPE_CHECKING, Optional
 

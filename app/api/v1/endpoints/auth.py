@@ -28,7 +28,7 @@ async def signup(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered",
         )
-    new_user = v1.user.create(user_create, session)
+    new_user = v1.user.create_user(user_create, session)
     return new_user
 
 
@@ -37,7 +37,7 @@ async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
     session: Session = Depends(session.get_session),
 ):
-    user_obj = v1.user.authenticate(
+    user_obj = v1.user.authenticate_user(
         user_login=user.UserLogin(
             email=form_data.username, password=form_data.password
         ),

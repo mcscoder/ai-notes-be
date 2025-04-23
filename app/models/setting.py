@@ -6,10 +6,10 @@ if TYPE_CHECKING:
     from app.models.user import User
 
 class SettingBase(BaseModel):
-    text_size: int
-    theme: int
-    email_notifications: bool
-    push_notifications: bool
+    text_size: int = 14
+    theme: int = 0  # 0: light, 1: dark
+    email_notifications: bool = True
+    push_notifications: bool = True
 
 class Setting(SettingBase, table=True):
     # One setting belongs to one user

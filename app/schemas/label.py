@@ -3,7 +3,6 @@ from typing import Optional
 
 class LabelBase(BaseModel):
     name: str
-    color: int
 
 class LabelCreate(LabelBase):
     pass
@@ -13,4 +12,3 @@ class LabelRead(LabelBase):
 
 class LabelUpdate(BaseModel):
     name: Optional[str] = None
-    color: Optional[int] = None

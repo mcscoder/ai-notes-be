@@ -20,8 +20,5 @@ class User(UserBase, table=True):
     # One user can have one setting
     setting: Optional["Setting"] = Relationship(back_populates="user")
 
-    # One user can have many labels
-    labels: list["Label"] = Relationship(back_populates="user")
-
     # One user can have many notes
     notes: list["Note"] = Relationship(back_populates="user")

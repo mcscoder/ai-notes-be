@@ -9,7 +9,7 @@ api_router.include_router(
 )
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 api_router.include_router(
-    labels.router, prefix="/labels", tags=["labels"], dependencies=[Depends(get_current_user)]
+    labels.router, prefix="/labels", tags=["labels"]
 )
 api_router.include_router(
     notes.router, prefix="/notes", tags=["notes"], dependencies=[Depends(get_current_user)]

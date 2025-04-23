@@ -37,7 +37,7 @@ def create_access_token(user_id, expires_delta: timedelta | None = None):
     return encoded_jwt
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login-form")
 
 
 def decode_token(token: str = Depends(oauth2_scheme)):

@@ -1,6 +1,7 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 
+from app.schemas.label import LabelRead
 
 class NoteBase(BaseModel):
     title: str
@@ -8,15 +9,15 @@ class NoteBase(BaseModel):
     is_pinned: bool = False
     is_finished: bool = False
     is_archived: bool = False
-    label_id: Optional[int] = None
 
 
 class NoteCreate(NoteBase):
-    pass
+    label_ids: Optional[List[int]] = None
 
 
 class NoteRead(NoteBase):
     id: int
+    labels: List[LabelRead]
 
 
 class NoteUpdate(BaseModel):
@@ -25,4 +26,4 @@ class NoteUpdate(BaseModel):
     is_pinned: Optional[bool] = None
     is_finished: Optional[bool] = None
     is_archived: Optional[bool] = None
-    label_id: Optional[int] = None
+    label_ids: Optional[List[int]] = None

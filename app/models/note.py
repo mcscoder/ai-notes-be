@@ -1,6 +1,7 @@
 from app.models.base import BaseModel
 from sqlmodel import Field, Relationship
 from typing import TYPE_CHECKING, Optional
+from . import NoteLabelLink
 
 if TYPE_CHECKING:
     from app.models.user import User
@@ -20,6 +21,7 @@ class Note(NoteBase, table=True):
     user_id: int = Field(foreign_key="user.id", nullable=False)
     user: Optional["User"] = Relationship(back_populates="notes")
 
-    # Many notes belong to one label (optional)
-    label_id: Optional[int] = Field(foreign_key="label.id", nullable=True, default=None)
-    label: Optional["Label"] = Relationship(back_populates="notes")
+    # One note can have many labels
+    labels: list["Label"] = Relationship(
+        back_populates="notes", link_model=NoteLabelLink
+    )

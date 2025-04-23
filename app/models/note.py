@@ -3,7 +3,8 @@ from sqlmodel import Field, Relationship
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from app.models import User, Label
+    from app.models.user import User
+    from app.models.label import Label
 
 
 class NoteBase(BaseModel):
@@ -12,6 +13,7 @@ class NoteBase(BaseModel):
     is_pinned: bool = False
     is_finished: bool = False
     is_archived: bool = False
+
 
 class Note(NoteBase, table=True):
     # Many notes belong to one user

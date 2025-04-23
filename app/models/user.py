@@ -3,7 +3,9 @@ from sqlmodel import Relationship
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from app.models import Setting, Note, Label
+    from app.models.setting import Setting
+    from app.models.label import Label
+    from app.models.note import Note
 
 
 class UserBase(BaseModel):

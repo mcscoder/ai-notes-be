@@ -3,7 +3,8 @@ from sqlmodel import Field, Relationship
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from app.models import User, Note
+    from app.models.user import User
+    from app.models.note import Note
 
 
 class LabelBase(BaseModel):

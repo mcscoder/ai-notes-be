@@ -10,11 +10,6 @@ from app.core import security
 router = APIRouter()
 
 
-@router.get("/test")
-async def test_endpoint():
-    return {"message": "Test endpoint is working!"}
-
-
 @router.post(
     "/signup", response_model=user.UserRead, status_code=status.HTTP_201_CREATED
 )

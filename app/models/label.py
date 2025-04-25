@@ -1,6 +1,6 @@
 from app.models.base import BaseModel
 from sqlmodel import Relationship
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 from . import NoteLabelLink
 
 if TYPE_CHECKING:
@@ -13,6 +13,6 @@ class LabelBase(BaseModel):
 
 class Label(LabelBase, table=True):
     # One label can have many notes
-    notes: list["Note"] = Relationship(
+    notes: List["Note"] = Relationship(
         back_populates="labels", link_model=NoteLabelLink
     )

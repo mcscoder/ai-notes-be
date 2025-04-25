@@ -7,8 +7,8 @@ from app.schemas.task import TaskRead
 
 class NoteBase(BaseModel):
     title: str
-    content: str
     type: int
+    content: Optional[str] = None
     is_pinned: bool = False
     is_finished: bool = False
     is_archived: bool = False

@@ -20,6 +20,15 @@ class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str
 
+class SignupVerifyRequest(BaseModel):
+    email: str
+    otp: str
+
+class ForgotPasswordVerifyRequest(BaseModel):
+    email: str
+    otp: str
+    new_password: str
+
 class UserRead(UserBase):
     id: int
 

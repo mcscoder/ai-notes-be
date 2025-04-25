@@ -3,6 +3,7 @@ from sqlmodel import Session, select
 from app.models import user as UserModel, setting as SettingModel
 from app.schemas import user as UserSchema
 from app.core import security
+from app.services import otp_service
 
 
 def get_user_by_id(user_id: int, session: Session):
@@ -108,3 +109,33 @@ def update_user_settings(
     session.commit()
     session.refresh(settings)
     return settings
+
+
+def verify_signup_otp_and_create_user(data: UserSchema.SignupVerifyRequest, session: Session):
+    record = otp_service.get_signup_otp(data.email)
+    if not record or record.get("otp") != data.otp:
+        return None
+    user_create = UserSchema.UserCreate(**record["user_data"])
+    user_obj = get_user_by_email(user_create.email, session)
+    if user_obj:
+        # Đã tồn tại user, không tạo nữa
+        otp_service.delete_signup_otp(data.email)
+        return None
+    new_user = create_user(user_create, session)
+    otp_service.delete_signup_otp(data.email)
+    return new_user
+
+
+def verify_forgot_otp_and_reset_password(data: UserSchema.ForgotPasswordVerifyRequest, session: Session):
+    record = otp_service.get_forgot_otp(data.email)
+    if not record or record.get("otp") != data.otp:
+        return False
+    user_obj = get_user_by_email(data.email, session)
+    if not user_obj:
+        otp_service.delete_forgot_otp(data.email)
+        return False
+    user_obj.password = security.get_password_hash(data.new_password)
+    session.add(user_obj)
+    session.commit()
+    otp_service.delete_forgot_otp(data.email)
+    return True

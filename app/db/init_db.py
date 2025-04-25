@@ -6,7 +6,7 @@ engine = create_engine(settings.DATABASE_URL, echo=query_logging)
 
 
 def init_db():
-    from app.models import user, note, setting, label
+    from app.models import user, note, setting, label, task
     SQLModel.metadata.create_all(engine)
 
     # Insert hard labels if not exist

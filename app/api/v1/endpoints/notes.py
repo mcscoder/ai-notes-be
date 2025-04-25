@@ -1,11 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Path
 from sqlmodel import Session
+from typing import Optional
 
 from app.core.deps import get_current_user
 from app.crud import v1
 from app.db import session
 from app.models import user as UserModel
-from app.schemas import note as NoteSchema, common as CommonSchema
+from app.schemas import (
+    note as NoteSchema,
+    common as CommonSchema,
+    task as TaskSchema,
+)
 
 router = APIRouter()
 
@@ -64,3 +69,60 @@ def delete_note(
     if not ok:
         raise HTTPException(status_code=404, detail="Note not found")
     return CommonSchema.Message(message="Note deleted successfully")
+
+
+@router.post(
+    "/{note_id}/tasks",
+    response_model=TaskSchema.TaskRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_task(
+    note_id: int,
+    task_create: TaskSchema.TaskCreate,
+    current_user: UserModel.User = Depends(get_current_user),
+    session: Session = Depends(session.get_session),
+):
+    task = v1.note.create_task(note_id, task_create, current_user, session)
+    if not task:
+        raise HTTPException(status_code=404, detail="Note not found")
+    return task
+
+
+@router.get("/{note_id}/tasks/{task_id}", response_model=TaskSchema.TaskRead)
+def get_task(
+    note_id: int,
+    task_id: int,
+    current_user: UserModel.User = Depends(get_current_user),
+    session: Session = Depends(session.get_session),
+):
+    task = v1.note.get_task_by_id(note_id, task_id, current_user, session)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return task
+
+
+@router.put("/{note_id}/tasks/{task_id}", response_model=TaskSchema.TaskRead)
+def update_task(
+    note_id: int,
+    task_id: int,
+    task_update: TaskSchema.TaskUpdate,
+    current_user: UserModel.User = Depends(get_current_user),
+    session: Session = Depends(session.get_session),
+):
+    task = v1.note.update_task(note_id, task_id, task_update, current_user, session)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return task
+
+
+@router.delete("/{note_id}/tasks/{task_id}", response_model=CommonSchema.Message)
+def delete_task(
+    note_id: int,
+    task_id: int,
+    current_user: UserModel.User = Depends(get_current_user),
+    session: Session = Depends(session.get_session),
+):
+    ok = v1.note.delete_task(note_id, task_id, current_user, session)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return CommonSchema.Message(message="Task deleted successfully")

@@ -2,10 +2,13 @@ from pydantic import BaseModel
 from typing import Optional, List
 
 from app.schemas.label import LabelRead
+from app.schemas.task import TaskRead
+
 
 class NoteBase(BaseModel):
     title: str
     content: str
+    type: int
     is_pinned: bool = False
     is_finished: bool = False
     is_archived: bool = False
@@ -17,7 +20,8 @@ class NoteCreate(NoteBase):
 
 class NoteRead(NoteBase):
     id: int
-    labels: List[LabelRead]
+    labels: Optional[List[LabelRead]] = None
+    tasks: Optional[List[TaskRead]] = None
 
 
 class NoteUpdate(BaseModel):

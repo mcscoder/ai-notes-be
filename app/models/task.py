@@ -8,6 +8,7 @@ if TYPE_CHECKING:
 
 class TaskBase(BaseModel):
     title: str
+    content: Optional[str] = None
     is_finished: bool = False
 
 

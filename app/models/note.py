@@ -14,6 +14,7 @@ class NoteBase(BaseModel):
     type: int
     content: Optional[str] = None
     labels: List[str] = Field(default_factory=list, sa_column=Column(JSON))
+    image_url: Optional[str] = None
     is_pinned: bool = False
     is_finished: bool = False
     is_archived: bool = False

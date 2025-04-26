@@ -1,1 +1,1 @@
-from . import ai, auth, notes, users
+from . import ai, auth, notes, users, scheduler

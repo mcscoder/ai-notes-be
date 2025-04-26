@@ -6,6 +6,6 @@ engine = create_engine(settings.DATABASE_URL, echo=query_logging)
 
 
 def init_db():
-    from app.models import user, note, setting, task
+    from app.models import user, note, setting, task, scheduler
 
     SQLModel.metadata.create_all(engine)

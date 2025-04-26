@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 
-from app.api.v1.endpoints import ai, auth, notes, users
+from app.api.v1.endpoints import ai, auth, notes, users, scheduler
 from app.core.deps import get_current_user
 
 api_router = APIRouter()
@@ -13,4 +13,7 @@ api_router.include_router(
 )
 api_router.include_router(
     users.router, prefix="/users", tags=["users"], dependencies=[Depends(get_current_user)]
+)
+api_router.include_router(
+    scheduler.router, prefix="/schedulers", tags=["schedulers"]
 )

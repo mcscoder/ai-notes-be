@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Optional, List
 
 if TYPE_CHECKING:
     from app.models.setting import Setting
-    from app.models.label import Label
     from app.models.note import Note
 
 

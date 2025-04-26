@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 
 from app.schemas.task import TaskRead
+from app.schemas.base import BaseSchema
 
 
 class NoteBase(BaseModel):
@@ -19,7 +20,7 @@ class NoteCreate(NoteBase):
     pass
 
 
-class NoteRead(NoteBase):
+class NoteRead(NoteBase, BaseSchema):
     id: int
     tasks: Optional[List[TaskRead]] = None
 

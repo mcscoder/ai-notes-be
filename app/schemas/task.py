@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional, List
+from app.schemas.base import BaseSchema
 
 
 class TaskBase(BaseModel):
@@ -12,7 +13,7 @@ class TaskCreate(TaskBase):
     parent_id: Optional[int] = None
 
 
-class TaskRead(TaskBase):
+class TaskRead(TaskBase, BaseSchema):
     id: int
     tasks: Optional[List["TaskRead"]] = None
 

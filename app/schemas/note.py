@@ -29,6 +29,7 @@ class NoteUpdate(BaseModel):
     title: Optional[str] = None
     content: Optional[str] = None
     labels: List[str] = []
+    image_url: Optional[str] = None
     is_pinned: Optional[bool] = None
     is_finished: Optional[bool] = None
     is_archived: Optional[bool] = None

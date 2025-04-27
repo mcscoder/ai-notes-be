@@ -20,5 +20,6 @@ class TaskRead(TaskBase, BaseSchema):
 
 class TaskUpdate(BaseModel):
     title: Optional[str] = None
+    content: Optional[str] = None
     is_finished: Optional[bool] = None
     parent_id: Optional[int] = None

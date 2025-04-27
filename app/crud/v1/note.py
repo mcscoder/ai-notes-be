@@ -52,8 +52,8 @@ def get_notes(
     if search:
         filters.append(
             or_(
-                NoteModel.Note.title.ilike(f"%{search}%"),
-                NoteModel.Note.content.ilike(f"%{search}%"),
+                NoteModel.Note.title.op('%')(search),
+                NoteModel.Note.content.op('%')(search),
             )
         )
     statement = select(NoteModel.Note).where(*filters)

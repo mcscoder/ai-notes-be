@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Path
+from fastapi import APIRouter, Depends, HTTPException, status, Path, Query
 from sqlmodel import Session
-from typing import Optional
+from typing import Optional, Literal
 
 from app.core.deps import get_current_user
 from app.crud import v1
@@ -19,8 +19,23 @@ router = APIRouter()
 def list_notes(
     current_user: UserModel.User = Depends(get_current_user),
     session: Session = Depends(session.get_session),
+    type: Optional[int] = Query(None, description="Filter by note type"),
+    is_pinned: Optional[bool] = Query(None, description="Filter by pinned status"),
+    is_finished: Optional[bool] = Query(None, description="Filter by finished status"),
+    is_archived: Optional[bool] = Query(None, description="Filter by archived status"),
+    sort_order: Literal["asc", "desc"] = Query("desc", pattern="^(asc|desc)$", description="Sort order by updated_at: 'asc' or 'desc'"),
+    search: Optional[str] = Query(None, description="Search in note title or content"),
 ):
-    return v1.note.get_notes(current_user, session)
+    return v1.note.get_notes(
+        current_user,
+        session,
+        type=type,
+        is_pinned=is_pinned,
+        is_finished=is_finished,
+        is_archived=is_archived,
+        sort_order=sort_order,
+        search=search,
+    )
 
 
 @router.post(

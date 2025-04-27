@@ -1,5 +1,7 @@
 from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
+from typing import Optional
+from sqlalchemy import desc, asc, or_
 
 from app.models import (
     note as NoteModel,
@@ -28,8 +30,37 @@ def get_note_by_id(note_id: int, user: UserModel.User, session: Session):
     return session.exec(statement).first()
 
 
-def get_notes(user: UserModel.User, session: Session):
-    statement = select(NoteModel.Note).where(NoteModel.Note.user_id == user.id)
+def get_notes(
+    user: UserModel.User,
+    session: Session,
+    type: Optional[int] = None,
+    is_pinned: Optional[bool] = None,
+    is_finished: Optional[bool] = None,
+    is_archived: Optional[bool] = None,
+    sort_order: str = "desc",
+    search: Optional[str] = None,
+):
+    filters = [NoteModel.Note.user_id == user.id]
+    if type is not None:
+        filters.append(NoteModel.Note.type == type)
+    if is_pinned is not None:
+        filters.append(NoteModel.Note.is_pinned == is_pinned)
+    if is_finished is not None:
+        filters.append(NoteModel.Note.is_finished == is_finished)
+    if is_archived is not None:
+        filters.append(NoteModel.Note.is_archived == is_archived)
+    if search:
+        filters.append(
+            or_(
+                NoteModel.Note.title.ilike(f"%{search}%"),
+                NoteModel.Note.content.ilike(f"%{search}%"),
+            )
+        )
+    statement = select(NoteModel.Note).where(*filters)
+    if sort_order == "asc":
+        statement = statement.order_by(asc(NoteModel.Note.updated_at))
+    else:
+        statement = statement.order_by(desc(NoteModel.Note.updated_at))
     return session.exec(statement).all()
 
 

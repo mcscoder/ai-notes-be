@@ -11,6 +11,7 @@ load_dotenv()
 class Settings(BaseSettings):
     # Database settings
     DATABASE_URL: str
+    DATABASE_URL_DEV: str
 
     # JWT settings
     SECRET_KEY: str
@@ -29,11 +30,11 @@ class Settings(BaseSettings):
     EMAIL_FROM: str = "no-reply@example.com"
 
 
-# @lru_cache()  # Cache the settings object
+@lru_cache()  # Cache the settings object
 def get_settings():
     return Settings()
 
-# get_settings.cache_clear()
+get_settings.cache_clear()
 
 # Get settings instance
 settings = get_settings()

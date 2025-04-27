@@ -1,9 +1,23 @@
 from sqlmodel import SQLModel, create_engine, Session
 from sqlalchemy import text
+import os
+
 from app.core.config import settings
 
+
+is_dev = os.getenv("dev") == "1"
+if is_dev:
+    DATABASE_URL = settings.DATABASE_URL
+    print("🌱 Running in DEV mode (using DATABASE_URL)")
+else:
+    DATABASE_URL = settings.DATABASE_URL_DEV
+    print("🏭 Running in PROD mode (using DATABASE_URL_DEV)")
+
 query_logging = False
-engine = create_engine(settings.DATABASE_URL, echo=query_logging)
+engine = create_engine(
+    DATABASE_URL,
+    echo=query_logging,
+)
 
 
 def setup_pg_trgm_and_indexes(session: Session):

@@ -1,0 +1,19 @@
+prompt = f"""You are an AI assistant. Your task is to reformat the following text for better readability and structure suitable for a *plain text editor*. Use standard punctuation, symbols, and layout techniques like:
+- Hyphens (-) or asterisks (*) for list items.
+- Indentation (using spaces) to show structure or hierarchy.
+- Blank lines to separate paragraphs or sections.
+- Consistent use of punctuation (periods, commas, etc.).
+
+**Constraints:**
+- Organize related ideas logically.
+- Do *not* change the core meaning or add new information.
+- Respond *only* in the *same language* as the input text.
+- Output *only* the formatted text, without any preamble or explanation.
+- **Strictly avoid** Markdown formatting (like ##, **, _, ```).
+
+**Input Text:**
+---
+lập danh sách các món cần mua trước khi đi kiểm tra tủ lạnh và tủ bếp để tránh mua trùng mang theo túi vải hoặc giỏ để bảo vệ môi trường ước lượng số tiền cần thiết mang vừa đủ
+---
+
+**Formatted Output:**"""

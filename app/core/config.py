@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     SMTP_USE_TLS: bool = True
     EMAIL_FROM: str = "no-reply@example.com"
+    
+    # AI service settings
+    GEMINI_API_KEY: str
+    GEMINI_MODEL_NAME: str = "gemini-2.0-flash"
 
 
 @lru_cache()  # Cache the settings object

@@ -7,12 +7,12 @@ from app.core.config import settings
 
 is_dev = os.getenv("dev") == "1"
 if is_dev:
+    print("🏭 Running in PROD mode (using DATABASE_URL_DEV)")
+    DATABASE_URL = settings.DATABASE_URL_DEV
+else:
     DATABASE_URL = settings.DATABASE_URL
     print("🌱 Running in DEV mode (using DATABASE_URL)")
-else:
-    DATABASE_URL = settings.DATABASE_URL_DEV
-    print("🏭 Running in PROD mode (using DATABASE_URL_DEV)")
-
+print(DATABASE_URL)
 query_logging = False
 engine = create_engine(
     DATABASE_URL,

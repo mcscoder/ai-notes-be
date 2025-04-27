@@ -52,8 +52,8 @@ def get_notes(
     if search:
         filters.append(
             or_(
-                NoteModel.Note.title.op('%')(search),
-                NoteModel.Note.content.op('%')(search),
+                NoteModel.Note.title.op("%")(search),
+                NoteModel.Note.content.op("%")(search),
             )
         )
     statement = select(NoteModel.Note).where(*filters)
@@ -110,26 +110,21 @@ def create_task(
     return task
 
 
-def get_task_by_id(note_id: int, task_id: int, user: UserModel.User, session: Session):
-    note = get_note_by_id(note_id, user, session)
-    if not note:
-        return None
+def get_task_by_id(task_id: int, session: Session):
     statement = (
         select(TaskModel.Task)
-        .where(TaskModel.Task.id == task_id, TaskModel.Task.note_id == note_id)
+        .where(TaskModel.Task.id == task_id)
         .options(selectinload(TaskModel.Task.tasks))
     )
     return session.exec(statement).first()
 
 
 def update_task(
-    note_id: int,
     task_id: int,
     task_update: TaskSchema.TaskUpdate,
-    user: UserModel.User,
     session: Session,
 ):
-    task = get_task_by_id(note_id, task_id, user, session)
+    task = get_task_by_id(task_id, session)
     if not task:
         return None
 
@@ -143,8 +138,8 @@ def update_task(
     return task
 
 
-def delete_task(note_id: int, task_id: int, user: UserModel.User, session: Session):
-    task = get_task_by_id(note_id, task_id, user, session)
+def delete_task(task_id: int, session: Session):
+    task = get_task_by_id(task_id, session)
     if not task:
         return False
     session.delete(task)

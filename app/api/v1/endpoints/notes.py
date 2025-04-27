@@ -23,7 +23,11 @@ def list_notes(
     is_pinned: Optional[bool] = Query(None, description="Filter by pinned status"),
     is_finished: Optional[bool] = Query(None, description="Filter by finished status"),
     is_archived: Optional[bool] = Query(None, description="Filter by archived status"),
-    sort_order: Literal["asc", "desc"] = Query("desc", pattern="^(asc|desc)$", description="Sort order by updated_at: 'asc' or 'desc'"),
+    sort_order: Literal["asc", "desc"] = Query(
+        "desc",
+        pattern="^(asc|desc)$",
+        description="Sort order by updated_at: 'asc' or 'desc'",
+    ),
     search: Optional[str] = Query(None, description="Search in note title or content"),
 ):
     return v1.note.get_notes(
@@ -103,41 +107,35 @@ def create_task(
     return task
 
 
-@router.get("/{note_id}/tasks/{task_id}", response_model=TaskSchema.TaskRead)
+@router.get("/tasks/{task_id}", response_model=TaskSchema.TaskRead)
 def get_task(
-    note_id: int,
     task_id: int,
-    current_user: UserModel.User = Depends(get_current_user),
     session: Session = Depends(session.get_session),
 ):
-    task = v1.note.get_task_by_id(note_id, task_id, current_user, session)
+    task = v1.note.get_task_by_id(task_id, session)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     return task
 
 
-@router.put("/{note_id}/tasks/{task_id}", response_model=TaskSchema.TaskRead)
+@router.put("/tasks/{task_id}", response_model=TaskSchema.TaskRead)
 def update_task(
-    note_id: int,
     task_id: int,
     task_update: TaskSchema.TaskUpdate,
-    current_user: UserModel.User = Depends(get_current_user),
     session: Session = Depends(session.get_session),
 ):
-    task = v1.note.update_task(note_id, task_id, task_update, current_user, session)
+    task = v1.note.update_task(task_id, task_update, session)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     return task
 
 
-@router.delete("/{note_id}/tasks/{task_id}", response_model=CommonSchema.Message)
+@router.delete("/tasks/{task_id}", response_model=CommonSchema.Message)
 def delete_task(
-    note_id: int,
     task_id: int,
-    current_user: UserModel.User = Depends(get_current_user),
     session: Session = Depends(session.get_session),
 ):
-    ok = v1.note.delete_task(note_id, task_id, current_user, session)
+    ok = v1.note.delete_task(task_id, session)
     if not ok:
         raise HTTPException(status_code=404, detail="Task not found")
     return CommonSchema.Message(message="Task deleted successfully")

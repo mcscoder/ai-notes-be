@@ -6,7 +6,7 @@ from google.generativeai.types import (
 )  # For safety settings and config
 from fastapi import HTTPException, status
 from app.core.config import settings
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 import logging  # Import logging
 
 # Configure logging
@@ -225,28 +225,49 @@ async def refine_content(
 
 
 async def continue_writing(
-    content: str, title: Optional[str] = None, max_tokens: Optional[int] = 150
+    content: Optional[str], title: Optional[str] = None, max_tokens: Optional[int] = 150
 ) -> str:
-    """Continues writing, using title for topic guidance."""
+    """
+    Continues writing the note based on existing content and title.
+    If content is empty, starts writing based solely on the title.
+    """
     title_context = f"Note Title: {title}\n\n" if title else ""
     estimated_max_tokens = int(max_tokens / 0.7) if max_tokens else 200
-    prompt = f"""You are an AI assistant. Your task is to continue writing the text below naturally and coherently, staying on the topic indicated by the title and existing content. Maintain the existing tone and style.
+
+    # --- Adjust prompt based on whether content exists ---
+    if (
+        content and content.strip()
+    ):  # Check if content is not None and not just whitespace
+        input_section = f"""**Input Text (Continue from here):**
+---
+{content}
+---"""
+        instruction = "continue writing the text below naturally and coherently"
+    else:
+        # If content is empty, instruct to START writing based on title
+        input_section = (
+            "(The user has not written any content yet.)"  # Provide context for the LLM
+        )
+        instruction = "start writing content for the note based *only* on the title provided below"
+
+    prompt = f"""You are an AI assistant. Your task is to {instruction}. Stay on topic (indicated by the title) and maintain a suitable tone.
 
 **Constraints:**
 - Generate approximately {max_tokens} words (or fill the token limit).
-- Start the continuation directly, *without* repeating the input text.
-- Respond *only* in the *same language* as the input text.
-- Output *only* the continued text.
+- Start the writing directly.
+- Respond *only* in the *same language* as the input title/content.
+- Output *only* the generated text.
 - **Strictly avoid** Markdown formatting (like ##, **, _, ```).
 
-{title_context}**Input Text (Continue from here):**
----
-{content}
----
+{title_context}{input_section}
 
-**Continuation:**"""
+**Generated Text:**"""  # Changed label for clarity
+
     config = GenerationConfig(temperature=0.7, max_output_tokens=estimated_max_tokens)
-    return await _call_gemini_api(prompt, generation_config=config)
+
+    # _call_gemini_api should handle errors and return the generated text
+    generated_text = await _call_gemini_api(prompt, generation_config=config)
+    return generated_text  # Already stripped in _call_gemini_api
 
 
 async def polish_content(content: str, title: Optional[str] = None) -> str:
@@ -302,3 +323,163 @@ async def summarize_content(
 **Summary:**"""
     config = GenerationConfig(temperature=0.5, max_output_tokens=estimated_max_tokens)
     return await _call_gemini_api(prompt, generation_config=config)
+
+
+async def generate_tasks_from_title(
+    title: str, language_hint: Optional[str] = None
+) -> List[str]:
+    """
+    Generates a list of relevant task titles based on a note title.
+
+    Args:
+        title: The title of the note to generate tasks for.
+        language_hint: Optional hint for the language (e.g., 'Vietnamese', 'English')
+
+    Returns:
+        A list of generated task title strings. Returns empty list on failure.
+    """
+    language_instruction = (
+        f"Respond *only* in the *same language* as the input title (likely {language_hint})."
+        if language_hint
+        else "Respond *only* in the *same language* as the input title."
+    )
+
+    prompt = f"""You are an AI assistant. Your task is to brainstorm and generate a list of actionable task titles based on the following note title. Think about the steps or sub-items related to the title.
+
+**Constraints:**
+- Generate relevant, concise, and actionable task titles.
+- Output *only* a plain text list, with each task title on a new line.
+- Do *not* use numbers, bullets (like -, *), or any other formatting unless it's part of the task title itself.
+- {language_instruction}
+- Aim for a reasonable number of tasks (e.g., 3-7), but adjust based on the title's complexity.
+- If the title doesn't seem actionable or is too vague for task generation, return an empty response or a single line saying "No specific tasks suggested".
+
+**Note Title:**
+---
+{title}
+---
+
+**Generated Task Titles (one per line):**"""
+
+    config = GenerationConfig(
+        temperature=0.6,  # Allow some creativity for brainstorming
+        # max_output_tokens=... # Set if needed, tasks are usually short
+    )
+
+    try:
+        # Assuming _call_gemini_api handles errors and returns the raw text output
+        generated_text = await _call_gemini_api(prompt, generation_config=config)
+
+        if (
+            not generated_text
+            or "no specific tasks suggested" in generated_text.lower()
+        ):
+            return []
+
+        # Parse the output: split by newline, strip whitespace, filter empty lines
+        task_titles = [
+            line.strip() for line in generated_text.splitlines() if line.strip()
+        ]
+
+        # Basic filter for potential refusal phrases (optional)
+        task_titles = [
+            t for t in task_titles if "cannot generate tasks" not in t.lower()
+        ]
+
+        return task_titles
+
+    except Exception as e:
+        logger.error(f"Error generating tasks for title '{title}': {e}", exc_info=True)
+        return []  # Return empty list on error
+
+
+async def summarize_task_list(tasks: List[str], title: Optional[str] = None) -> str:
+    """Summarizes a list of task titles, aiming for a concise title-like summary."""
+    if not tasks:
+        return "Summary: No tasks found"  # Provide a default title
+
+    title_context = f"The overall topic is: {title}\n\n" if title else ""
+    task_list_str = "\n".join(f"- {task_title}" for task_title in tasks)
+
+    # Modified prompt to encourage a title-like summary
+    prompt = f"""You are an AI assistant. Create a concise summary title for the following list of tasks. Consider the main topic if provided.
+
+**Constraints:**
+- The summary should be short enough to be a task title itself.
+- Capture the main essence of the tasks.
+- Start the summary with "Summary: ".
+- Respond *only* in the *same language* as the input tasks/title.
+- Output *only* the summary title text itself.
+- **Strictly avoid** Markdown formatting.
+
+{title_context}**Task List:**
+---
+{task_list_str}
+---
+
+**Summary Title:**"""  # Changed from "Summary:"
+    config = GenerationConfig(temperature=0.5)
+    # Limit output tokens to make it more title-like if needed
+    # config.max_output_tokens = 50
+    summary_title = await _call_gemini_api(prompt, generation_config=config)
+
+    # Ensure it starts with "Summary: " for consistency, or add if missing
+    if not summary_title.lower().startswith("summary:"):
+        summary_title = f"Summary: {summary_title}"
+
+    return summary_title
+
+
+async def generate_more_tasks(
+    title: str, existing_tasks: List[str], language_hint: Optional[str] = None
+) -> List[str]:
+    """Generates additional tasks based on a title and existing tasks."""
+    language_instruction = (
+        f"Respond *only* in the *same language* as the input (likely {language_hint})."
+        if language_hint
+        else "Respond *only* in the *same language* as the input."
+    )
+    existing_tasks_str = (
+        "\n".join(f"- {t}" for t in existing_tasks) if existing_tasks else "None"
+    )
+
+    prompt = f"""You are an AI assistant. Based on the note title and the existing tasks listed below, brainstorm and suggest *additional* relevant and actionable task titles.
+
+**Constraints:**
+- Generate only *new* task titles that are not already listed or slight variations.
+- Output *only* a plain text list of the new task titles, each on a new line.
+- Do *not* use numbers or bullets.
+- {language_instruction}
+- If no more relevant tasks come to mind, return an empty response.
+
+**Note Title:**
+---
+{title}
+---
+
+**Existing Tasks:**
+---
+{existing_tasks_str}
+---
+
+**Additional Task Titles (one per line):**"""
+    config = GenerationConfig(temperature=0.7)
+
+    try:
+        generated_text = await _call_gemini_api(prompt, generation_config=config)
+        if not generated_text:
+            return []
+        new_task_titles = [
+            line.strip() for line in generated_text.splitlines() if line.strip()
+        ]
+        # Filter out potential duplicates (case-insensitive) just in case
+        existing_lower = {t.lower() for t in existing_tasks}
+        new_task_titles = [
+            t for t in new_task_titles if t.lower() not in existing_lower
+        ]
+        return new_task_titles
+    except Exception as e:
+        logger.error(
+            f"Error generating more tasks for title '{title}': {e}", exc_info=True
+        )
+        return []

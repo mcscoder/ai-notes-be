@@ -142,39 +142,36 @@ async def _call_gemini_api(
 # --- Specific AI Feature Implementations ---
 
 
-async def format_content(content: str) -> str:
-    """Formats note content using standard punctuation for raw editors."""
-    prompt = f"""You are an AI assistant. Your task is to reformat the following text for better readability and structure suitable for a *plain text editor*. Use standard punctuation, symbols, and layout techniques like:
+async def format_content(content: str, title: Optional[str] = None) -> str:
+    """Formats note content using standard punctuation, using title for context."""
+    title_context = f"Note Title: {title}\n\n" if title else ""  # Add title if present
+    prompt = f"""You are an AI assistant. Your task is to reformat the following text for better readability and structure suitable for a *plain text editor*. Use the note title below for context if helpful. Use standard punctuation, symbols, and layout techniques like:
 - Hyphens (-) or asterisks (*) for list items.
 - Indentation (using spaces) to show structure or hierarchy.
 - Blank lines to separate paragraphs or sections.
 - Consistent use of punctuation (periods, commas, etc.).
 
 **Constraints:**
-- Organize related ideas logically.
+- Organize related ideas logically based on the title and content.
 - Do *not* change the core meaning or add new information.
 - Respond *only* in the *same language* as the input text.
 - Output *only* the formatted text, without any preamble or explanation.
 - **Strictly avoid** Markdown formatting (like ##, **, _, ```).
 
-**Input Text:**
+{title_context}**Input Text:**
 ---
 {content}
 ---
 
 **Formatted Output:**"""
-
-    # Configuration (tune as needed)
-    config = GenerationConfig(
-        temperature=0.3,
-        # max_output_tokens=... # Set if necessary
-    )
+    config = GenerationConfig(temperature=0.3)
     return await _call_gemini_api(prompt, generation_config=config)
 
 
-async def cleanup_content(content: str) -> str:
-    """Cleans up text (grammar, spelling, redundancy) for raw editors."""
-    prompt = f"""You are an AI assistant. Your task is to clean up the following text.
+async def cleanup_content(content: str, title: Optional[str] = None) -> str:
+    """Cleans up text (grammar, spelling, redundancy), using title for context."""
+    title_context = f"Note Title: {title}\n\n" if title else ""
+    prompt = f"""You are an AI assistant. Your task is to clean up the following text. Use the note title for context.
 - Correct spelling and grammar errors.
 - Remove redundant words or phrases.
 - Improve clarity and conciseness.
@@ -186,7 +183,7 @@ async def cleanup_content(content: str) -> str:
 - Output *only* the cleaned-up text, without any preamble or explanation.
 - **Strictly avoid** Markdown formatting (like ##, **, _, ```).
 
-**Input Text:**
+{title_context}**Input Text:**
 ---
 {content}
 ---
@@ -196,18 +193,20 @@ async def cleanup_content(content: str) -> str:
     return await _call_gemini_api(prompt, generation_config=config)
 
 
-async def refine_content(content: str, style: Optional[str] = None) -> str:
-    """Refines writing style, making it more expressive/fluent for raw editors."""
+async def refine_content(
+    content: str, title: Optional[str] = None, style: Optional[str] = None
+) -> str:
+    """Refines writing style, using title for context."""
+    title_context = f"Note Title: {title}\n\n" if title else ""
     style_instruction = (
         f"aiming for a '{style}' style (e.g., professional, casual, formal, engaging)"
         if style
         else "making it more expressive and fluent"
     )
-
-    prompt = f"""You are an AI assistant. Your task is to refine the writing style of the following text, {style_instruction}.
+    prompt = f"""You are an AI assistant. Your task is to refine the writing style of the following text, {style_instruction}, using the note title for overall context.
 - Improve word choice.
 - Enhance sentence structure and flow.
-- Make the language more engaging or appropriate for the desired style.
+- Make the language more engaging or appropriate for the desired style and topic (indicated by the title).
 
 **Constraints:**
 - Do *not* change the core meaning significantly.
@@ -215,27 +214,23 @@ async def refine_content(content: str, style: Optional[str] = None) -> str:
 - Output *only* the refined text, without any preamble or explanation.
 - **Strictly avoid** Markdown formatting (like ##, **, _, ```).
 
-**Input Text:**
+{title_context}**Input Text:**
 ---
 {content}
 ---
 
 **Refined Output:**"""
-    config = GenerationConfig(
-        temperature=0.7
-    )  # Higher temp for more creative refinement
+    config = GenerationConfig(temperature=0.7)
     return await _call_gemini_api(prompt, generation_config=config)
 
 
-async def continue_writing(content: str, max_tokens: Optional[int] = 150) -> str:
-    """Continues writing the note based on existing content for raw editors."""
-    # Estimate max_output_tokens - Gemini uses tokens, not words. Adjust multiplier as needed.
-    # A simple heuristic: max_output_tokens ~ max_words / 0.7
-    estimated_max_tokens = (
-        int(max_tokens / 0.7) if max_tokens else 200
-    )  # Default ~150 words
-
-    prompt = f"""You are an AI assistant. Your task is to continue writing the following text naturally and coherently. Stay on topic and maintain the existing tone and style.
+async def continue_writing(
+    content: str, title: Optional[str] = None, max_tokens: Optional[int] = 150
+) -> str:
+    """Continues writing, using title for topic guidance."""
+    title_context = f"Note Title: {title}\n\n" if title else ""
+    estimated_max_tokens = int(max_tokens / 0.7) if max_tokens else 200
+    prompt = f"""You are an AI assistant. Your task is to continue writing the text below naturally and coherently, staying on the topic indicated by the title and existing content. Maintain the existing tone and style.
 
 **Constraints:**
 - Generate approximately {max_tokens} words (or fill the token limit).
@@ -244,26 +239,24 @@ async def continue_writing(content: str, max_tokens: Optional[int] = 150) -> str
 - Output *only* the continued text.
 - **Strictly avoid** Markdown formatting (like ##, **, _, ```).
 
-**Input Text (Continue from here):**
+{title_context}**Input Text (Continue from here):**
 ---
 {content}
 ---
 
 **Continuation:**"""
-    config = GenerationConfig(
-        temperature=0.7,  # Allow some creativity for continuation
-        max_output_tokens=estimated_max_tokens,
-    )
+    config = GenerationConfig(temperature=0.7, max_output_tokens=estimated_max_tokens)
     return await _call_gemini_api(prompt, generation_config=config)
 
 
-async def polish_content(content: str) -> str:
-    """Polishes text (flow, clarity, grammar, tone) subtly for raw editors."""
-    prompt = f"""You are an AI assistant. Your task is to review and gently polish the following text.
+async def polish_content(content: str, title: Optional[str] = None) -> str:
+    """Polishes text subtly, using title for context."""
+    title_context = f"Note Title: {title}\n\n" if title else ""
+    prompt = f"""You are an AI assistant. Your task is to review and gently polish the following text, using the title for context.
 - Improve the flow and readability.
 - Enhance clarity without changing meaning.
 - Correct any subtle grammar or punctuation issues.
-- Ensure a smooth and consistent tone.
+- Ensure a smooth and consistent tone relevant to the topic.
 - Make only necessary, subtle improvements. Do *not* rewrite significantly.
 
 **Constraints:**
@@ -272,7 +265,7 @@ async def polish_content(content: str) -> str:
 - Output *only* the polished text, without any preamble or explanation.
 - **Strictly avoid** Markdown formatting (like ##, **, _, ```).
 
-**Input Text:**
+{title_context}**Input Text:**
 ---
 {content}
 ---
@@ -282,27 +275,26 @@ async def polish_content(content: str) -> str:
     return await _call_gemini_api(prompt, generation_config=config)
 
 
-async def summarize_content(content: str, max_length: Optional[int] = 100) -> str:
-    """Summarizes text concisely for raw editors."""
+async def summarize_content(
+    content: str, title: Optional[str] = None, max_length: Optional[int] = 100
+) -> str:
+    """Summarizes text, using title for topic focus."""
+    title_context = f"Note Title: {title}\n\n" if title else ""
     length_instruction = (
         f"Aim for a concise summary, ideally around {max_length} words."
         if max_length
         else "Provide a concise summary of the main points."
     )
-    # Estimate token limit based on word count
-    estimated_max_tokens = (
-        int(max_length * 1.8) if max_length else 250
-    )  # More generous for summary
-
-    prompt = f"""You are an AI assistant. Your task is to summarize the main points of the following text. {length_instruction}
+    estimated_max_tokens = int(max_length * 1.8) if max_length else 250
+    prompt = f"""You are an AI assistant. Your task is to summarize the main points of the following text, considering the note title for the main topic. {length_instruction}
 
 **Constraints:**
-- Capture the essential information accurately.
+- Capture the essential information accurately, focusing on the topic indicated by the title.
 - Respond *only* in the *same language* as the input text.
 - Output *only* the summary text itself, without any preamble like "Here is a summary:".
 - **Strictly avoid** Markdown formatting (like ##, **, _, ```).
 
-**Input Text:**
+{title_context}**Input Text:**
 ---
 {content}
 ---

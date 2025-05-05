@@ -1,5 +1,3 @@
-# In your AI endpoints file (e.g., app/api/v1/endpoints/ai.py)
-
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Body
 from sqlmodel import Session
 from typing import List, Any
@@ -438,11 +436,8 @@ async def continue_note_or_tasks(
     return note
 
 
-# --- MODIFIED Summarize Endpoint ---
-@router.post(
-    "/{note_id}/summarize", response_model=NoteSchema.NoteRead
-)  # RESPONSE MODEL IS NoteRead
-async def summarize_and_save(  # Renamed function
+@router.post("/{note_id}/summarize", response_model=NoteSchema.NoteRead)
+async def summarize_and_replace_or_create_task(  # Renamed for clarity
     note_id: int,
     current_user: UserModel.User = Depends(get_current_user),
     session: Session = Depends(session.get_session),
@@ -456,31 +451,36 @@ async def summarize_and_save(  # Renamed function
             status_code=status.HTTP_404_NOT_FOUND, detail="Note not found"
         )
 
-    summary_text = ""  # Initialize summary text
-
     try:
-        if note.type in [1, 4]:  # Content-based: Append summary to content
-            if note.content:
+        if note.type in [1, 4]:  # Content-based: REPLACE content with summary
+            if (
+                note.content and note.content.strip()
+            ):  # Check if content exists and is not just whitespace
+                logger.info(
+                    f"Generating summary to replace content for note {note.id}."
+                )
                 generated_summary = await ai_service.summarize_content(
                     note.content, note.title, max_length=options.max_length
                 )
+
                 if generated_summary:
-                    summary_text = generated_summary  # Keep track for logging maybe
-                    # Append the summary
-                    separator = "\n\n---\nSummary:\n"  # Define a clear separator
-                    new_content = note.content + separator + generated_summary
-                    note_update_data = NoteSchema.NoteUpdate(content=new_content)
+                    # --- REPLACE content ---
+                    note_update_data = NoteSchema.NoteUpdate(content=generated_summary)
                     v1.note.update_note(
                         note.id, note_update_data, current_user, session
                     )
                     session.flush()  # Flush update
-                    logger.info(f"Appended summary to content for note {note.id}.")
+                    logger.info(f"Replaced content with summary for note {note.id}.")
+                    # --- End of REPLACE content ---
                 else:
-                    logger.info(f"AI did not generate a summary for note {note.id}.")
+                    logger.warning(
+                        f"AI did not generate a summary for note {note.id}. Content not replaced."
+                    )
             else:
-                logger.info("Note has no content to summarize.")
+                logger.info("Note has no content to summarize or replace.")
 
-        else:  # Task-based: Create a new task with the summary as its title
+        else:  # Task-based: Create a new task with the summary as its title (Logic remains the same)
+            logger.info(f"Generating summary task for task-based note {note.id}.")
             if not hasattr(note, "tasks") or note.tasks is None:
                 session.refresh(note, attribute_names=["tasks"])
 
@@ -502,18 +502,16 @@ async def summarize_and_save(  # Renamed function
                 task_titles = [task.title for task in note.tasks if task.title]
 
             if task_titles:
-                # Generate a concise summary suitable for a task title
                 summary_task_title = await ai_service.summarize_task_list(
                     task_titles, note.title
                 )
                 if summary_task_title and not summary_task_title.lower().startswith(
                     "summary: no tasks"
                 ):
-                    summary_text = summary_task_title  # Keep track for logging
-                    # Create the new summary task
                     task_create_data = TaskSchema.TaskCreate(
-                        title=summary_task_title, is_finished=True
-                    )  # Mark summary task as finished? Optional.
+                        title=summary_task_title,
+                        is_finished=True,  # Optional: mark as finished
+                    )
                     created = v1.note.create_task(
                         note.id, task_create_data, current_user, session
                     )
@@ -521,7 +519,7 @@ async def summarize_and_save(  # Renamed function
                         logger.info(
                             f"Created summary task for note {note.id} with title: '{summary_task_title}'"
                         )
-                        session.flush()  # Flush creation
+                        session.flush()
                     else:
                         logger.error(
                             f"Failed to create summary task for note {note.id}"
@@ -531,16 +529,18 @@ async def summarize_and_save(  # Renamed function
                         f"AI did not generate a valid summary task title for note {note.id}."
                     )
             else:
-                logger.info("Note has no tasks to summarize.")
+                logger.info("Note has no tasks to summarize into a new task.")
 
     except Exception as e:
         logger.error(
-            f"Error during summarize and save for note {note.id}: {e}", exc_info=True
+            f"Error during summarize processing for note {note.id}: {e}", exc_info=True
         )
-        # Allow proceeding to refresh/return, but the summary operation might have failed
-        # Or raise HTTPException(status_code=500, detail="Failed to process summary request.")
+        # Decide if failure should prevent refresh/return
+        raise HTTPException(
+            status_code=500, detail="Failed to process summary request."
+        )
 
-    # Refresh and return the note - including the appended summary or new task
+    # Refresh and return the note - with replaced content or the new summary task
     logger.debug(f"Refreshing note {note.id} before returning after summarize.")
     session.refresh(note)
     return note

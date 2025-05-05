@@ -25,7 +25,7 @@ def create_note(
 def get_note_by_id(note_id: int, user: UserModel.User, session: Session):
     statement = select(NoteModel.Note).where(
         NoteModel.Note.id == note_id,
-        # NoteModel.Note.user_id == user.id,
+        NoteModel.Note.user_id == user.id,
     )
     return session.exec(statement).first()
 

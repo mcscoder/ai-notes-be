@@ -1,7 +1,7 @@
 from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
 from typing import Optional
-from sqlalchemy import desc, asc, or_
+from sqlalchemy import desc, asc, or_, and_
 
 from app.models import (
     note as NoteModel,
@@ -50,12 +50,23 @@ def get_notes(
     if is_archived is not None:
         filters.append(NoteModel.Note.is_archived == is_archived)
     if search:
-        filters.append(
-            or_(
-                NoteModel.Note.title.op("%")(search),
-                NoteModel.Note.content.op("%")(search),
-            )
-        )
+        # Split the search phrase into individual words
+        search_words = search.split()
+        if search_words:  # Only add filter if there are any words
+            # Create a list of conditions, one for each word
+            word_filters = []
+            for word in search_words:
+                word_pattern = f"%{word}%"
+                # Condition: This word must appear in the title OR content
+                word_condition = or_(
+                    NoteModel.Note.title.ilike(word_pattern),
+                    NoteModel.Note.content.ilike(word_pattern),
+                )
+                word_filters.append(word_condition)
+
+            # Combine all word conditions with AND
+            # Meaning ALL words must appear (in title or content)
+            filters.append(and_(*word_filters))
     statement = select(NoteModel.Note).where(*filters)
     if sort_order == "asc":
         statement = statement.order_by(asc(NoteModel.Note.updated_at))

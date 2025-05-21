@@ -62,6 +62,7 @@ async def _call_gemini_api(
         response = model.generate_content(
             prompt, generation_config=generation_config, safety_settings=safety_settings
         )
+        logger.info(prompt)
         logger.info("Gemini response received")
 
         # --- Crucial Error and Safety Handling ---
@@ -224,50 +225,40 @@ async def refine_content(
     return await _call_gemini_api(prompt, generation_config=config)
 
 
-async def continue_writing(
-    content: Optional[str], title: Optional[str] = None, max_tokens: Optional[int] = 150
-) -> str:
+async def continue_writing(content: Optional[str], title: Optional[str] = None) -> str:
     """
-    Continues writing the note based on existing content and title.
+    Continues writing the note based on existing content and title using a structured prompt.
     If content is empty, starts writing based solely on the title.
+    Ensures non-conversational output.
     """
-    title_context = f"Note Title: {title}\n\n" if title else ""
-    estimated_max_tokens = int(max_tokens / 0.7) if max_tokens else 200
+    title_for_prompt = title if title is not None else ""
+    content_for_prompt = content if content is not None else ""
 
-    # --- Adjust prompt based on whether content exists ---
-    if (
-        content and content.strip()
-    ):  # Check if content is not None and not just whitespace
-        input_section = f"""**Input Text (Continue from here):**
----
-{content}
----"""
-        instruction = "continue writing the text below naturally and coherently"
-    else:
-        # If content is empty, instruct to START writing based on title
-        input_section = (
-            "(The user has not written any content yet.)"  # Provide context for the LLM
-        )
-        instruction = "start writing content for the note based *only* on the title provided below"
+    # Construct the prompt using the structure we designed
+    # MODIFIED PROMPT TO PREVENT QUESTIONS/CONVERSATION
+    prompt = f"""You are an AI writing assistant specialized in helping users continue their notes. Your sole purpose is to provide a direct, non-interactive text continuation.
 
-    prompt = f"""You are an AI assistant. Your task is to {instruction}. Stay on topic (indicated by the title) and maintain a suitable tone.
+Here is the current note information provided by the user:
+Note Title: {title_for_prompt}
+Note Content: {content_for_prompt}
 
-**Constraints:**
-- Generate approximately {max_tokens} words (or fill the token limit).
-- Start the writing directly.
-- Respond *only* in the *same language* as the input title/content.
-- Output *only* the generated text.
-- **Strictly avoid** Markdown formatting (like ##, **, _, ```).
+Your task is to generate a natural continuation for the Note Content.
 
-{title_context}{input_section}
+Instructions:
+1. If the Note Content is currently empty, begin writing content that is relevant to and inspired by the Note Title.
+2. If the Note Content is not empty, read the Note Title and the existing Note Content. Then, continue writing naturally from the end of the existing Note Content, ensuring the new text flows seamlessly.
+3. Maintain the original language used in the Note Title and Note Content.
+4. Maintain the existing writing style and tone of the note (if content exists), or adopt a suitable tone based on the title (if content is empty).
+5. The continuation should be relatively concise, suitable for a note-taking context. Aim for a short to moderate addition.
+6. Crucially: Your output must be raw text. Do not use Markdown, rich text formatting, or any special characters beyond basic punctuation (like commas, periods, dashes '-', parentheses '()', question marks '?', exclamation points '!'). Ensure the output is plain text.
+7. **Absolutely critical: Your entire output must be *only* the generated continuation text.** Do not include the Note Title, the existing Note Content, or any other text. **Specifically, do not include any questions, prompts for the user, conversational filler, introductory phrases (like "Here is a continuation:"), concluding remarks, or any other form of dialogue or interaction.** Just provide the raw text that directly continues the note.
 
-**Generated Text:**"""  # Changed label for clarity
+Please generate the continuation text now based on the provided information.
+"""
 
-    config = GenerationConfig(temperature=0.7, max_output_tokens=estimated_max_tokens)
+    generated_text = await _call_gemini_api(prompt)
 
-    # _call_gemini_api should handle errors and return the generated text
-    generated_text = await _call_gemini_api(prompt, generation_config=config)
-    return generated_text  # Already stripped in _call_gemini_api
+    return generated_text
 
 
 async def polish_content(content: str, title: Optional[str] = None) -> str:

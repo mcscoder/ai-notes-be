@@ -11,6 +11,7 @@ from app.services import otp_service, email_service
 
 router = APIRouter()
 
+
 @router.post("/signup", status_code=status.HTTP_200_OK)
 async def signup_request(
     user_create: user.UserCreate,
@@ -23,8 +24,11 @@ async def signup_request(
         )
     otp = otp_service.generate_otp()
     otp_service.save_signup_otp(user_create.email, user_create.model_dump(), otp)
-    email_service.send_otp_email(user_create.email, otp, subject="OTP for VKU Notes - Đăng ký tài khoản")
+    email_service.send_otp_email(
+        user_create.email, otp, subject="OTP for VKU Notes - Đăng ký tài khoản"
+    )
     return {"message": "OTP sent to email"}
+
 
 @router.post("/signup/verify", response_model=user.UserRead)
 async def signup_verify(
@@ -60,6 +64,7 @@ async def form_login_for_access_token(
     )
     return token.Token(access_token=access_token, token_type="bearer")
 
+
 @router.post("/login", response_model=token.Token)
 async def login_for_access_token(
     user_login: user.UserLogin,
@@ -79,6 +84,7 @@ async def login_for_access_token(
     )
     return token.Token(access_token=access_token, token_type="bearer")
 
+
 @router.post("/forgot-password")
 async def forgot_password(
     req: user.ForgotPasswordRequest,
@@ -91,8 +97,11 @@ async def forgot_password(
         )
     otp = otp_service.generate_otp()
     otp_service.save_forgot_otp(req.email, otp)
-    email_service.send_otp_email(req.email, otp, subject="OTP for VKU Notes - Quên mật khẩu")
+    email_service.send_otp_email(
+        req.email, otp, subject="OTP for VKU Notes - Quên mật khẩu"
+    )
     return {"message": "OTP sent to email"}
+
 
 @router.post("/forgot-password/verify")
 async def forgot_password_verify(

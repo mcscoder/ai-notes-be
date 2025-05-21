@@ -365,8 +365,7 @@ async def continue_note_or_tasks(
             # The service function is now designed to handle None/empty content
             generated_text = await ai_service.continue_writing(
                 note.content,  # Pass potentially None content
-                note.title,
-                max_tokens=options.max_tokens,
+                note.title
             )
 
             if generated_text:  # Only proceed if AI generated something
